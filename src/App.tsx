@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { Calculator, Bell } from 'lucide-react'
+import { Calculator, Bell, Share, Copy } from 'lucide-react'
 
 interface Turno {
   numero: string;
@@ -9,9 +9,16 @@ interface Turno {
   completado: boolean;
 }
 
+interface HistorialDia {
+  fechaInicio: Date;
+  fechaFin: Date;
+  totalTurnos: number;
+  totalRecaudado: number;
+}
+
 export default function CombinedApp() {
   const [activeTab, setActiveTab] = useState<'calculator' | 'turnos'>('calculator')
-
+  
   // Calculator state
   const [precioBase, setPrecioBase] = useState(25000)
   const [distanciaIda, setDistanciaIda] = useState(0)
@@ -24,6 +31,9 @@ export default function CombinedApp() {
   const [nuevoNumero, setNuevoNumero] = useState('')
   const [audio] = useState(typeof Audio !== "undefined" ? new Audio("/alarm.mp3") : null)
   const [totalRecaudado, setTotalRecaudado] = useState(0)
+  const [diaIniciado, setDiaIniciado] = useState(false)
+  const [fechaInicio, setFechaInicio] = useState<Date | null>(null)
+  const [historial, setHistorial] = useState<HistorialDia[]>([])
 
   // Calculator functions
   const calcularCostoTransporte = () => {
@@ -39,6 +49,10 @@ export default function CombinedApp() {
 
   // Turnos functions
   const agregarTurno = () => {
+    if (nuevoNumero && !diaIniciado) {
+      setDiaIniciado(true)
+      setFechaInicio(new Date())
+    }
     if (nuevoNumero) {
       setTurnos([...turnos, { numero: nuevoNumero, tiempoRestante: 600, completado: false }])
       setNuevoNumero('')
@@ -50,9 +64,52 @@ export default function CombinedApp() {
     setTurnos(turnos.filter(turno => turno.numero !== numero))
   }
 
+  const finalizarDia = () => {
+    if (fechaInicio) {
+      const nuevoHistorial: HistorialDia = {
+        fechaInicio: fechaInicio,
+        fechaFin: new Date(),
+        totalTurnos: turnos.length,
+        totalRecaudado: totalRecaudado
+      }
+      setHistorial([nuevoHistorial, ...historial])
+      setTurnos([])
+      setTotalRecaudado(0)
+      setDiaIniciado(false)
+      setFechaInicio(null)
+    }
+  }
+
+  const formatearFecha = (fecha: Date) => {
+    return `${fecha.getDate().toString().padStart(2, '0')}/${(fecha.getMonth() + 1).toString().padStart(2, '0')}/${fecha.getFullYear()}`
+  }
+
+  const formatearHora = (fecha: Date) => {
+    return `${fecha.getHours().toString().padStart(2, '0')}.${fecha.getMinutes().toString().padStart(2, '0')}.${fecha.getSeconds().toString().padStart(2, '0')}`
+  }
+
+  const calcularDuracionTotal = (inicio: Date, fin: Date) => {
+    const diff = fin.getTime() - inicio.getTime()
+    const horas = Math.floor(diff / 3600000)
+    const minutos = Math.floor((diff % 3600000) / 60000)
+    const segundos = Math.floor((diff % 60000) / 1000)
+    return `${horas.toString().padStart(2, '0')}:${minutos.toString().padStart(2, '0')}:${segundos.toString().padStart(2, '0')}`
+  }
+
+  const compartirHistorial = (item: HistorialDia) => {
+    const mensaje = `Fecha Inicio: ${formatearFecha(item.fechaInicio)} ${formatearHora(item.fechaInicio)}\nFecha Fin: ${formatearFecha(item.fechaFin)} ${formatearHora(item.fechaFin)}\nDuración Total: ${calcularDuracionTotal(item.fechaInicio, item.fechaFin)}\nTotal Turnos: ${item.totalTurnos}\nTotal Recaudado: $${item.totalRecaudado}`
+    // Aquí iría la lógica para enviar el mensaje al número +543624559999
+    console.log("Compartiendo:", mensaje)
+  }
+
+  const copiarHistorial = (item: HistorialDia) => {
+    const texto = `Fecha Inicio: ${formatearFecha(item.fechaInicio)} ${formatearHora(item.fechaInicio)}\nFecha Fin: ${formatearFecha(item.fechaFin)} ${formatearHora(item.fechaFin)}\nDuración Total: ${calcularDuracionTotal(item.fechaInicio, item.fechaFin)}\nTotal Turnos: ${item.totalTurnos}\nTotal Recaudado: $${item.totalRecaudado}`
+    navigator.clipboard.writeText(texto)
+  }
+
   useEffect(() => {
     const timer = setInterval(() => {
-      setTurnos(turnosActuales =>
+      setTurnos(turnosActuales => 
         turnosActuales.map(turno => ({
           ...turno,
           tiempoRestante: Math.max(0, turno.tiempoRestante - 1)
@@ -67,8 +124,8 @@ export default function CombinedApp() {
     turnos.forEach(turno => {
       if (turno.tiempoRestante === 0 && !turno.completado) {
         audio?.play()
-        setTurnos(turnosActuales =>
-          turnosActuales.map(t =>
+        setTurnos(turnosActuales => 
+          turnosActuales.map(t => 
             t.numero === turno.numero ? { ...t, completado: true } : t
           )
         )
@@ -79,7 +136,7 @@ export default function CombinedApp() {
   const turnosActivos = turnos.filter(turno => turno.tiempoRestante > 0).length
 
   return (
-    <div className="min-h-screen bg-[#000000] flex items-center justify-center">
+    <div className="min-h-screen bg-[#000000] flex items-center justify-center p-4">
       <div className="bg-[#000000] border border-[#546064] p-8 rounded-lg shadow-xl w-full max-w-md">
         <div className="flex justify-center mb-6">
           <button
@@ -195,6 +252,64 @@ export default function CombinedApp() {
                 </div>
               </div>
             ))}
+            {diaIniciado && (
+              <button
+                onClick={finalizarDia}
+                className="w-full mt-4 px-4 py-2 bg-[#0a1216] text-[#ffffed] font-bold border border-[#546064] rounded-md hover:bg-[#1a2226]"
+              >
+                Finalizar Día
+              </button>
+            )}
+            <div className="mt-6">
+              <h2 className="text-xl font-bold text-[#fffaf2] mb-4">Historial</h2>
+              <div className="overflow-x-auto">
+                <table className="w-full text-[#fffaf2] border-collapse">
+                  <thead>
+                    <tr className="bg-[#0a1216]">
+                      <th className="p-2 border border-[#546064] whitespace-nowrap">Fecha Inicio</th>
+                      <th className="p-2 border border-[#546064] whitespace-nowrap">Hora Inicio</th>
+                      <th className="p-2 border border-[#546064] whitespace-nowrap">Fecha Fin</th>
+                      <th className="p-2 border border-[#546064] whitespace-nowrap">Hora Fin</th>
+                      <th className="p-2 border border-[#546064] whitespace-nowrap">Duración Total</th>
+                      <th className="p-2 border border-[#546064] whitespace-nowrap">Total Turnos</th>
+                      <th className="p-2 border border-[#546064] whitespace-nowrap">Total Recaudado</th>
+                      <th  className="p-2 border border-[#546064] whitespace-nowrap">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {historial.map((item, index) => (
+                      <tr key={index} className="bg-[#0a1216]">
+                        <td className="p-2 border border-[#546064] whitespace-nowrap">{formatearFecha(item.fechaInicio)}</td>
+                        <td className="p-2 border border-[#546064] whitespace-nowrap">{formatearHora(item.fechaInicio)}</td>
+                        <td className="p-2 border border-[#546064] whitespace-nowrap">{formatearFecha(item.fechaFin)}</td>
+                        <td className="p-2 border border-[#546064] whitespace-nowrap">{formatearHora(item.fechaFin)}</td>
+                        <td className="p-2 border border-[#546064] whitespace-nowrap">{calcularDuracionTotal(item.fechaInicio, item.fechaFin)}</td>
+                        <td className="p-2 border border-[#546064] whitespace-nowrap">{item.totalTurnos}</td>
+                        <td className="p-2 border border-[#546064] whitespace-nowrap">${item.totalRecaudado}</td>
+                        <td className="p-2 border border-[#546064] whitespace-nowrap">
+                          <div className="flex justify-center space-x-2">
+                            <button
+                              onClick={() => compartirHistorial(item)}
+                              className="p-1 hover:bg-[#1a2226] rounded-full"
+                              title="Compartir"
+                            >
+                              <Share className="text-[#fffaf2]" size={16} />
+                            </button>
+                            <button
+                              onClick={() => copiarHistorial(item)}
+                              className="p-1 hover:bg-[#1a2226] rounded-full"
+                              title="Copiar"
+                            >
+                              <Copy className="text-[#fffaf2]" size={16} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </>
         )}
       </div>
