@@ -11,7 +11,7 @@ interface Turno {
 
 export default function CombinedApp() {
   const [activeTab, setActiveTab] = useState<'calculator' | 'turnos'>('calculator')
-  
+
   // Calculator state
   const [precioBase, setPrecioBase] = useState(25000)
   const [distanciaIda, setDistanciaIda] = useState(0)
@@ -52,7 +52,7 @@ export default function CombinedApp() {
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setTurnos(turnosActuales => 
+      setTurnos(turnosActuales =>
         turnosActuales.map(turno => ({
           ...turno,
           tiempoRestante: Math.max(0, turno.tiempoRestante - 1)
@@ -67,8 +67,8 @@ export default function CombinedApp() {
     turnos.forEach(turno => {
       if (turno.tiempoRestante === 0 && !turno.completado) {
         audio?.play()
-        setTurnos(turnosActuales => 
-          turnosActuales.map(t => 
+        setTurnos(turnosActuales =>
+          turnosActuales.map(t =>
             t.numero === turno.numero ? { ...t, completado: true } : t
           )
         )
@@ -155,11 +155,12 @@ export default function CombinedApp() {
             <h1 className="text-2xl font-bold text-[#fffaf2] mb-6 text-center">Control de Turnos</h1>
             <div className="flex gap-2 mb-4">
               <input
-                type="text"
+                type="number"
+                min="1"
                 value={nuevoNumero}
-                onChange={(e) => setNuevoNumero(e.target.value)}
+                onChange={(e) => setNuevoNumero(Math.floor(Number(e.target.value)).toString())}
                 placeholder="Número de turno"
-                className="flex-grow px-3 py-2 bg-[#0a1216] border border-[#546064] rounded-md focus:outline-none focus:ring-1 focus:ring-[#ffffed] text-[#fffaf2]"
+                className="flex-grow px-3 py-2 bg-[#0a1216] border border-[#546064] rounded-md focus:outline-none focus:ring-1 focus:ring-[#72ff67] text-[#fffaf2]"
               />
               <button
                 onClick={agregarTurno}
