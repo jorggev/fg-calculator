@@ -85,7 +85,7 @@ export default function ModernCombinedApp() {
       setTurnos([...turnos, { numero: nuevoNumero, nombre: nuevoNombre, tiempoRestante: 600, completado: false }])
       setNuevoNumero('')
       setNuevoNombre('')
-      setTotalRecaudado(prev => prev + 1000)
+      setTotalRecaudado(prev => prev + 500)
     }
   }
 
@@ -179,15 +179,15 @@ export default function ModernCombinedApp() {
 
   return (
     <div className="min-h-screen bg-white flex items-center justify-center p-4 font-sans">
-      <div className="bg-gray-100 p-8 rounded-2xl shadow-xl w-full max-w-4xl">
+      <div className="bg-gray-100 p-4 sm:p-8 rounded-2xl shadow-xl w-full max-w-4xl">
         <div className="flex justify-center mb-8">
-          <h1 className="text-3xl font-bold text-black">Dashboard</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-black">Dashboard</h1>
         </div>
 
         <div className="flex justify-center mb-6">
           <button
             onClick={() => setActiveTab('calculator')}
-            className={`px-6 py-2 rounded-md ${
+            className={`px-4 sm:px-6 py-2 rounded-md text-sm sm:text-base ${
               activeTab === 'calculator'
                 ? 'bg-green-500 text-white'
                 : 'text-black hover:bg-gray-200'
@@ -197,7 +197,7 @@ export default function ModernCombinedApp() {
           </button>
           <button
             onClick={() => setActiveTab('turnos')}
-            className={`px-6 py-2 rounded-md ${
+            className={`px-4 sm:px-6 py-2 rounded-md text-sm sm:text-base ${
               activeTab === 'turnos'
                 ? 'bg-green-500 text-white'
                 : 'text-black hover:bg-gray-200'
@@ -209,7 +209,7 @@ export default function ModernCombinedApp() {
         
         {activeTab === 'calculator' && (
           <div className="space-y-6">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <InputField
                 label="Precio Base del Alquiler"
                 value={precioBase}
@@ -244,14 +244,14 @@ export default function ModernCombinedApp() {
               </label>
             </div>
             <div className="bg-white p-6 rounded-xl">
-              <p className="text-md text-black">
-                Precio del servicio: ${precioTotal.toFixed(2)}
+              <p className="text-2xl font-bold text-green-500 mb-2">
+                Precio Total (redondeado): ${precioTotalRedondeado}
               </p>
-              <p className="text-md text-black mb-1">
+              <p className="text-lg text-black mb-1">
                 Costo de Transporte: ${calcularCostoTransporte().toFixed(2)}
               </p>
-              <p className="text-2xl font-bold text-green-500 mb-2">
-                PRECIO TOTAL: ${precioTotalRedondeado}
+              <p className="text-lg text-black">
+                Precio Total (exacto): ${precioTotal.toFixed(2)}
               </p>
             </div>
           </div>
@@ -259,13 +259,13 @@ export default function ModernCombinedApp() {
 
         {activeTab === 'turnos' && (
           <div className="space-y-6">
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2">
               <input
                 type="text"
                 value={nuevoNombre}
                 onChange={(e) => setNuevoNombre(e.target.value.replace(/[^a-zA-Z]/g, ''))}
                 placeholder="Nombre"
-                className="flex-grow px-4 py-2 bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 text-black"
+                className="w-full sm:w-auto px-4 py-2 bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 text-black"
               />
               <input
                 type="text"
@@ -273,30 +273,30 @@ export default function ModernCombinedApp() {
                 onChange={(e) => setNuevoNumero(e.target.value)}
                 onKeyPress={handleKeyPress}
                 placeholder="Número de turno"
-                className="flex-grow px-4 py-2 bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 text-black"
+                className="w-full sm:w-auto px-4 py-2 bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 text-black"
               />
               <button
                 onClick={agregarTurno}
-                className="px-6 py-2 bg-green-500 text-white font-bold rounded-md hover:bg-green-600 transition-colors duration-300"
+                className="w-full sm:w-auto px-6 py-2 bg-green-500 text-white font-bold rounded-md hover:bg-green-600 transition-colors duration-300"
               >
                 Agregar
               </button>
             </div>
-            <div className="flex justify-between items-center text-black">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center text-black space-y-2 sm:space-y-0">
               <span className="font-bold">Turnos activos: {turnosActivos}</span>
               <span className="font-bold">Total recaudado: ${totalRecaudado}</span>
             </div>
             <div className="space-y-4">
               {turnos.map(turno => (
-                <div key={turno.numero} className="bg-white p-4 rounded-xl flex justify-between items-center">
+                <div key={turno.numero} className="bg-white p-4 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-2 sm:space-y-0">
                   <div>
-                    <span className="font-bold text-black">Turno {turno.numero} - {turno.nombre}</span>
-                    <span className="ml-2 text-gray-600">
+                    <span className="font-bold text-black block sm:inline">Turno {turno.numero} - {turno.nombre}</span>
+                    <span className="text-gray-600 block sm:inline sm:ml-2">
                       {Math.floor(turno.tiempoRestante / 60)}:
                       {(turno.tiempoRestante % 60).toString().padStart(2, '0')}
                     </span>
                   </div>
-                  <div className="flex items-center space-x-2">
+                  <div className="flex  items-center space-x-2">
                     {turno.tiempoRestante === 0 && <Bell className="text-green-500" />}
                     <button
                       onClick={() => eliminarTurno(turno.numero)}
@@ -311,13 +311,13 @@ export default function ModernCombinedApp() {
             {diaIniciado && (
               <button
                 onClick={finalizarDia}
-                className="w-full px-6 py-3 bg-green-500 text-white  font-bold rounded-md hover:bg-green-600 transition-colors duration-300"
+                className="w-full px-6 py-3 bg-green-500 text-white font-bold rounded-md hover:bg-green-600 transition-colors duration-300"
               >
                 Finalizar Día
               </button>
             )}
             <div className="mt-8">
-              <h2 className="text-2xl font-bold text-black mb-4">Historial</h2>
+              <h2 className="text-xl sm:text-2xl font-bold text-black mb-4">Historial</h2>
               <div className="overflow-x-auto">
                 <table className="w-full text-black border-collapse">
                   <thead>
