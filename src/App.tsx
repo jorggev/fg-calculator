@@ -1,12 +1,13 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { Bell, Copy } from 'lucide-react'
+import { Bell, Copy, Trash2 } from 'lucide-react'
 import { toast, ToastContainer } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 
 interface Turno {
   numero: string;
+  nombre: string;
   tiempoRestante: number;
   completado: boolean;
 }
@@ -31,11 +32,36 @@ export default function ModernCombinedApp() {
   // Turnos state
   const [turnos, setTurnos] = useState<Turno[]>([])
   const [nuevoNumero, setNuevoNumero] = useState('')
+  const [nuevoNombre, setNuevoNombre] = useState('')
   const [audio] = useState(typeof Audio !== "undefined" ? new Audio("/alarm.mp3") : null)
   const [totalRecaudado, setTotalRecaudado] = useState(0)
   const [diaIniciado, setDiaIniciado] = useState(false)
   const [fechaInicio, setFechaInicio] = useState<Date | null>(null)
   const [historial, setHistorial] = useState<HistorialDia[]>([])
+
+  // Load data from localStorage on component mount
+  useEffect(() => {
+    const savedTurnos = localStorage.getItem('turnos')
+    const savedTotalRecaudado = localStorage.getItem('totalRecaudado')
+    const savedDiaIniciado = localStorage.getItem('diaIniciado')
+    const savedFechaInicio = localStorage.getItem('fechaInicio')
+    const savedHistorial = localStorage.getItem('historial')
+
+    if (savedTurnos) setTurnos(JSON.parse(savedTurnos))
+    if (savedTotalRecaudado) setTotalRecaudado(JSON.parse(savedTotalRecaudado))
+    if (savedDiaIniciado) setDiaIniciado(JSON.parse(savedDiaIniciado))
+    if (savedFechaInicio) setFechaInicio(new Date(JSON.parse(savedFechaInicio)))
+    if (savedHistorial) setHistorial(JSON.parse(savedHistorial))
+  }, [])
+
+  // Save data to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('turnos', JSON.stringify(turnos))
+    localStorage.setItem('totalRecaudado', JSON.stringify(totalRecaudado))
+    localStorage.setItem('diaIniciado', JSON.stringify(diaIniciado))
+    localStorage.setItem('fechaInicio', JSON.stringify(fechaInicio))
+    localStorage.setItem('historial', JSON.stringify(historial))
+  }, [turnos, totalRecaudado, diaIniciado, fechaInicio, historial])
 
   // Calculator functions
   const calcularCostoTransporte = () => {
@@ -51,14 +77,15 @@ export default function ModernCombinedApp() {
 
   // Turnos functions
   const agregarTurno = () => {
-    if (nuevoNumero && !diaIniciado) {
+    if (nuevoNumero && nuevoNombre && !diaIniciado) {
       setDiaIniciado(true)
       setFechaInicio(new Date())
     }
-    if (nuevoNumero) {
-      setTurnos([...turnos, { numero: nuevoNumero, tiempoRestante: 600, completado: false }])
+    if (nuevoNumero && nuevoNombre) {
+      setTurnos([...turnos, { numero: nuevoNumero, nombre: nuevoNombre, tiempoRestante: 600, completado: false }])
       setNuevoNumero('')
-      setTotalRecaudado(prev => prev + 500)
+      setNuevoNombre('')
+      setTotalRecaudado(prev => prev + 1000)
     }
   }
 
@@ -80,6 +107,10 @@ export default function ModernCombinedApp() {
       setDiaIniciado(false)
       setFechaInicio(null)
     }
+  }
+
+  const eliminarHistorial = (index: number) => {
+    setHistorial(historial.filter((_, i) => i !== index))
   }
 
   const formatearFecha = (fecha: Date) => {
@@ -147,10 +178,10 @@ export default function ModernCombinedApp() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#1C2735] to-[#0F1620] flex items-center justify-center p-4 font-sans">
-      <div className="bg-[#1C2735]/50 backdrop-blur-md border border-[#335CFF]/20 p-8 rounded-2xl shadow-xl w-full max-w-4xl">
+    <div className="min-h-screen bg-white flex items-center justify-center p-4 font-sans">
+      <div className="bg-gray-100 p-8 rounded-2xl shadow-xl w-full max-w-4xl">
         <div className="flex justify-center mb-8">
-          <h1 className="text-3xl font-bold text-[#FFFFFF]">Dashboard</h1>
+          <h1 className="text-3xl font-bold text-black">Dashboard</h1>
         </div>
 
         <div className="flex justify-center mb-6">
@@ -158,8 +189,8 @@ export default function ModernCombinedApp() {
             onClick={() => setActiveTab('calculator')}
             className={`px-6 py-2 rounded-md ${
               activeTab === 'calculator'
-                ? 'bg-gradient-to-r from-[#335CFF] to-[#5679FF] text-[#FFFFFF]'
-                : 'text-[#A1B1FF] hover:bg-[#1C2735]/30'
+                ? 'bg-green-500 text-white'
+                : 'text-black hover:bg-gray-200'
             } transition-all duration-300 mr-2`}
           >
             Calculadora
@@ -168,8 +199,8 @@ export default function ModernCombinedApp() {
             onClick={() => setActiveTab('turnos')}
             className={`px-6 py-2 rounded-md ${
               activeTab === 'turnos'
-                ? 'bg-gradient-to-r from-[#335CFF] to-[#5679FF] text-[#FFFFFF]'
-                : 'text-[#A1B1FF] hover:bg-[#1C2735]/30'
+                ? 'bg-green-500 text-white'
+                : 'text-black hover:bg-gray-200'
             } transition-all duration-300`}
           >
             Turnos
@@ -206,21 +237,21 @@ export default function ModernCombinedApp() {
                 id="dosViajes"
                 checked={dosViajes}
                 onChange={(e) => setDosViajes(e.target.checked)}
-                className="w-4 h-4 text-[#335CFF] bg-[#1C2735] border-[#335CFF] rounded focus:ring-[#335CFF]"
+                className="w-4 h-4 text-green-500 bg-white border-green-500 rounded focus:ring-green-500"
               />
-              <label htmlFor="dosViajes" className="text-[#FFFFFF]">
+              <label htmlFor="dosViajes" className="text-black">
                 Dos idas y vueltas
               </label>
             </div>
-            <div className="bg-[#1C2735]/50 p-6 rounded-xl">
-              <p className="text-2xl font-bold text-[#335CFF] mb-2">
-                Precio Total (redondeado): ${precioTotalRedondeado}
+            <div className="bg-white p-6 rounded-xl">
+              <p className="text-md text-black">
+                Precio del servicio: ${precioTotal.toFixed(2)}
               </p>
-              <p className="text-lg text-[#A1B1FF] mb-1">
+              <p className="text-md text-black mb-1">
                 Costo de Transporte: ${calcularCostoTransporte().toFixed(2)}
               </p>
-              <p className="text-lg text-[#A1B1FF]">
-                Precio Total (exacto): ${precioTotal.toFixed(2)}
+              <p className="text-2xl font-bold text-green-500 mb-2">
+                PRECIO TOTAL: ${precioTotalRedondeado}
               </p>
             </div>
           </div>
@@ -231,38 +262,45 @@ export default function ModernCombinedApp() {
             <div className="flex gap-2">
               <input
                 type="text"
+                value={nuevoNombre}
+                onChange={(e) => setNuevoNombre(e.target.value.replace(/[^a-zA-Z]/g, ''))}
+                placeholder="Nombre"
+                className="flex-grow px-4 py-2 bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 text-black"
+              />
+              <input
+                type="text"
                 value={nuevoNumero}
                 onChange={(e) => setNuevoNumero(e.target.value)}
                 onKeyPress={handleKeyPress}
                 placeholder="Número de turno"
-                className="flex-grow px-4 py-2 bg-[#1C2735]/50 border border-[#335CFF]/20 rounded-md focus:outline-none focus:ring-2 focus:ring-[#335CFF] text-[#FFFFFF]"
+                className="flex-grow px-4 py-2 bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 text-black"
               />
               <button
                 onClick={agregarTurno}
-                className="px-6 py-2 bg-gradient-to-r from-[#335CFF] to-[#5679FF] text-[#FFFFFF] font-bold rounded-md hover:opacity-90 transition-opacity duration-300"
+                className="px-6 py-2 bg-green-500 text-white font-bold rounded-md hover:bg-green-600 transition-colors duration-300"
               >
                 Agregar
               </button>
             </div>
-            <div className="flex justify-between items-center text-[#FFFFFF]">
+            <div className="flex justify-between items-center text-black">
               <span className="font-bold">Turnos activos: {turnosActivos}</span>
               <span className="font-bold">Total recaudado: ${totalRecaudado}</span>
             </div>
             <div className="space-y-4">
               {turnos.map(turno => (
-                <div key={turno.numero} className="bg-[#1C2735]/50 p-4 rounded-xl flex justify-between items-center">
+                <div key={turno.numero} className="bg-white p-4 rounded-xl flex justify-between items-center">
                   <div>
-                    <span className="font-bold text-[#FFFFFF]">Turno {turno.numero}</span>
-                    <span className="ml-2 text-[#A1B1FF]">
+                    <span className="font-bold text-black">Turno {turno.numero} - {turno.nombre}</span>
+                    <span className="ml-2 text-gray-600">
                       {Math.floor(turno.tiempoRestante / 60)}:
                       {(turno.tiempoRestante % 60).toString().padStart(2, '0')}
                     </span>
                   </div>
                   <div className="flex items-center space-x-2">
-                    {turno.tiempoRestante === 0 && <Bell className="text-[#335CFF]" />}
+                    {turno.tiempoRestante === 0 && <Bell className="text-green-500" />}
                     <button
                       onClick={() => eliminarTurno(turno.numero)}
-                      className="px-3 py-1 bg-[#FF3366] text-[#FFFFFF] rounded-md hover:bg-[#FF3366]/80 transition-colors duration-300"
+                      className="px-3 py-1 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors duration-300"
                     >
                       Eliminar
                     </button>
@@ -273,17 +311,17 @@ export default function ModernCombinedApp() {
             {diaIniciado && (
               <button
                 onClick={finalizarDia}
-                className="w-full px-6 py-3 bg-gradient-to-r from-[#335CFF] to-[#5679FF] text-[#FFFFFF] font-bold rounded-md hover:opacity-90 transition-opacity duration-300"
+                className="w-full px-6 py-3 bg-green-500 text-white  font-bold rounded-md hover:bg-green-600 transition-colors duration-300"
               >
                 Finalizar Día
               </button>
             )}
             <div className="mt-8">
-              <h2 className="text-2xl font-bold text-[#FFFFFF] mb-4">Historial</h2>
+              <h2 className="text-2xl font-bold text-black mb-4">Historial</h2>
               <div className="overflow-x-auto">
-                <table className="w-full text-[#FFFFFF] border-collapse">
+                <table className="w-full text-black border-collapse">
                   <thead>
-                    <tr className="bg-[#1C2735]/50">
+                    <tr className="bg-gray-200">
                       <th className="p-2 text-left">Fecha</th>
                       <th className="p-2 text-left">Duración</th>
                       <th className="p-2 text-left">Turnos</th>
@@ -293,18 +331,25 @@ export default function ModernCombinedApp() {
                   </thead>
                   <tbody>
                     {historial.map((item, index) => (
-                      <tr key={index} className="border-t border-[#335CFF]/20">
+                      <tr key={index} className="border-t border-gray-300">
                         <td className="p-2">{formatearFecha(item.fechaInicio)}</td>
                         <td className="p-2">{calcularDuracionTotal(item.fechaInicio, item.fechaFin)}</td>
-                        <td  className="p-2">{item.totalTurnos}</td>
+                        <td className="p-2">{item.totalTurnos}</td>
                         <td className="p-2">${item.totalRecaudado}</td>
                         <td className="p-2">
                           <button
                             onClick={() => copiarHistorial(item)}
-                            className="p-1 hover:bg-[#335CFF]/20 rounded-full transition-colors duration-300"
+                            className="p-1 hover:bg-gray-200 rounded-full transition-colors duration-300 mr-2"
                             title="Copiar"
                           >
-                            <Copy className="text-[#FFFFFF]" size={16} />
+                            <Copy className="text-black" size={16} />
+                          </button>
+                          <button
+                            onClick={() => eliminarHistorial(index)}
+                            className="p-1 hover:bg-gray-200 rounded-full transition-colors duration-300"
+                            title="Eliminar"
+                          >
+                            <Trash2 className="text-red-500" size={16} />
                           </button>
                         </td>
                       </tr>
@@ -330,12 +375,12 @@ interface InputFieldProps {
 function InputField({ label, value, onChange }: InputFieldProps) {
   return (
     <div className="space-y-1">
-      <label className="block text-sm font-medium text-[#A1B1FF]">{label}</label>
+      <label className="block text-sm font-medium text-black">{label}</label>
       <input
         type="number"
         value={value}
         onChange={onChange}
-        className="w-full px-3 py-2 bg-[#1C2735]/50 border border-[#335CFF]/20 rounded-md focus:outline-none focus:ring-2 focus:ring-[#335CFF] text-[#FFFFFF]"
+        className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 text-black"
       />
     </div>
   )
