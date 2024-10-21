@@ -77,15 +77,15 @@ export default function ModernCombinedApp() {
 
   // Turnos functions
   const agregarTurno = () => {
-    if (nuevoNumero && nuevoNombre && !diaIniciado) {
-      setDiaIniciado(true)
-      setFechaInicio(new Date())
-    }
     if (nuevoNumero && nuevoNombre) {
+      if (!diaIniciado) {
+        setDiaIniciado(true)
+        setFechaInicio(new Date())
+      }
       setTurnos([...turnos, { numero: nuevoNumero, nombre: nuevoNombre, tiempoRestante: 600, completado: false }])
       setNuevoNumero('')
       setNuevoNombre('')
-      setTotalRecaudado(prev => prev + 500)
+      setTotalRecaudado(prev => prev + 1000) // Cambiado a 1000
     }
   }
 
@@ -293,10 +293,11 @@ export default function ModernCombinedApp() {
                     <span className="font-bold text-black block sm:inline">Turno {turno.numero} - {turno.nombre}</span>
                     <span className="text-gray-600 block sm:inline sm:ml-2">
                       {Math.floor(turno.tiempoRestante / 60)}:
+                       
                       {(turno.tiempoRestante % 60).toString().padStart(2, '0')}
                     </span>
                   </div>
-                  <div className="flex  items-center space-x-2">
+                  <div className="flex items-center space-x-2">
                     {turno.tiempoRestante === 0 && <Bell className="text-green-500" />}
                     <button
                       onClick={() => eliminarTurno(turno.numero)}
