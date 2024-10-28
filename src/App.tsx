@@ -1,15 +1,17 @@
-'use client'
+/* 'use client'
 
-import React, { useState, useEffect } from 'react'
-import { Bell, Copy, Trash2 } from 'lucide-react'
+import React, { useState, useEffect, useCallback } from 'react'
+import { Trash2, CheckCircle } from 'lucide-react'
 import { toast, ToastContainer } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 
 interface Turno {
-  numero: string;
+  numero: number;
   nombre: string;
-  tiempoRestante: number;
+  tiempoInicial: number;
+  horaInicio: number;
   completado: boolean;
+  horaIngreso: string;
 }
 
 interface HistorialDia {
@@ -19,7 +21,7 @@ interface HistorialDia {
   totalRecaudado: number;
 }
 
-export default function ModernCombinedApp() {
+export default function Component() {
   const [activeTab, setActiveTab] = useState<'calculator' | 'turnos'>('calculator')
   
   // Calculator state
@@ -31,39 +33,45 @@ export default function ModernCombinedApp() {
 
   // Turnos state
   const [turnos, setTurnos] = useState<Turno[]>([])
-  const [nuevoNumero, setNuevoNumero] = useState('')
   const [nuevoNombre, setNuevoNombre] = useState('')
   const [audio] = useState(typeof Audio !== "undefined" ? new Audio("/alarm.mp3") : null)
   const [totalRecaudado, setTotalRecaudado] = useState(0)
   const [diaIniciado, setDiaIniciado] = useState(false)
   const [fechaInicio, setFechaInicio] = useState<Date | null>(null)
   const [historial, setHistorial] = useState<HistorialDia[]>([])
+  const [turnosFinalizados, setTurnosFinalizados] = useState<Turno[]>([])
+  const [ultimoNumeroTurno, setUltimoNumeroTurno] = useState(0)
 
-  // Load data from localStorage on component mount
   useEffect(() => {
+    // Load data from localStorage
     const savedTurnos = localStorage.getItem('turnos')
     const savedTotalRecaudado = localStorage.getItem('totalRecaudado')
     const savedDiaIniciado = localStorage.getItem('diaIniciado')
     const savedFechaInicio = localStorage.getItem('fechaInicio')
     const savedHistorial = localStorage.getItem('historial')
+    const savedTurnosFinalizados = localStorage.getItem('turnosFinalizados')
+    const savedUltimoNumeroTurno = localStorage.getItem('ultimoNumeroTurno')
 
     if (savedTurnos) setTurnos(JSON.parse(savedTurnos))
     if (savedTotalRecaudado) setTotalRecaudado(JSON.parse(savedTotalRecaudado))
     if (savedDiaIniciado) setDiaIniciado(JSON.parse(savedDiaIniciado))
     if (savedFechaInicio) setFechaInicio(new Date(JSON.parse(savedFechaInicio)))
     if (savedHistorial) setHistorial(JSON.parse(savedHistorial))
+    if (savedTurnosFinalizados) setTurnosFinalizados(JSON.parse(savedTurnosFinalizados))
+    if (savedUltimoNumeroTurno) setUltimoNumeroTurno(JSON.parse(savedUltimoNumeroTurno))
   }, [])
 
-  // Save data to localStorage whenever it changes
   useEffect(() => {
+    // Save data to localStorage
     localStorage.setItem('turnos', JSON.stringify(turnos))
     localStorage.setItem('totalRecaudado', JSON.stringify(totalRecaudado))
     localStorage.setItem('diaIniciado', JSON.stringify(diaIniciado))
     localStorage.setItem('fechaInicio', JSON.stringify(fechaInicio))
     localStorage.setItem('historial', JSON.stringify(historial))
-  }, [turnos, totalRecaudado, diaIniciado, fechaInicio, historial])
+    localStorage.setItem('turnosFinalizados', JSON.stringify(turnosFinalizados))
+    localStorage.setItem('ultimoNumeroTurno', JSON.stringify(ultimoNumeroTurno))
+  }, [turnos, totalRecaudado, diaIniciado, fechaInicio, historial, turnosFinalizados, ultimoNumeroTurno])
 
-  // Calculator functions
   const calcularCostoTransporte = () => {
     const distanciaTotal = distanciaIda * (dosViajes ? 4 : 2)
     const consumoTotal = (distanciaTotal / 300) * consumo
@@ -75,22 +83,59 @@ export default function ModernCombinedApp() {
   const precioTotal = precioBase + calcularCostoTransporte()
   const precioTotalRedondeado = Math.ceil(precioTotal)
 
-  // Turnos functions
+  const iniciarDia = () => {
+    localStorage.clear()
+    setTurnos([])
+    setTotalRecaudado(0)
+    setDiaIniciado(true)
+    setFechaInicio(new Date())
+    setHistorial([])
+    setTurnosFinalizados([])
+    setUltimoNumeroTurno(0)
+  }
+
   const agregarTurno = () => {
-    if (nuevoNumero && nuevoNombre) {
-      if (!diaIniciado) {
-        setDiaIniciado(true)
-        setFechaInicio(new Date())
+    if (!nuevoNombre.trim()) {
+      toast.error("El nombre es obligatorio", {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+      });
+      return;
+    }
+    if (diaIniciado) {
+      const nuevoNumeroTurno = ultimoNumeroTurno + 1
+      const ahora = Date.now()
+      const nuevoTurno: Turno = {
+        numero: nuevoNumeroTurno,
+        nombre: nuevoNombre.trim(),
+        tiempoInicial: 600,
+        horaInicio: ahora,
+        completado: false,
+        horaIngreso: new Date(ahora).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', hour12: false })
       }
-      setTurnos([...turnos, { numero: nuevoNumero, nombre: nuevoNombre, tiempoRestante: 600, completado: false }])
-      setNuevoNumero('')
+      setTurnos([...turnos, nuevoTurno])
       setNuevoNombre('')
-      setTotalRecaudado(prev => prev + 1000) // Cambiado a 1000
+      setTotalRecaudado(prev => prev + 1000)
+      setUltimoNumeroTurno(nuevoNumeroTurno)
     }
   }
 
-  const eliminarTurno = (numero: string) => {
+  const eliminarTurno = (numero: number) => {
     setTurnos(turnos.filter(turno => turno.numero !== numero))
+    setTotalRecaudado(prev => prev - 1000)
+  }
+
+  const finalizarTurno = (numero: number) => {
+    const turnoFinalizado = turnos.find(turno => turno.numero === numero)
+    if (turnoFinalizado) {
+      setTurnosFinalizados(prev => [...prev, { ...turnoFinalizado, completado: true }])
+      setTurnos(prev => prev.filter(turno => turno.numero !== numero))
+    }
   }
 
   const finalizarDia = () => {
@@ -98,7 +143,7 @@ export default function ModernCombinedApp() {
       const nuevoHistorial: HistorialDia = {
         fechaInicio: fechaInicio,
         fechaFin: new Date(),
-        totalTurnos: turnos.length,
+        totalTurnos: turnos.length + turnosFinalizados.length,
         totalRecaudado: totalRecaudado
       }
       setHistorial([nuevoHistorial, ...historial])
@@ -106,76 +151,40 @@ export default function ModernCombinedApp() {
       setTotalRecaudado(0)
       setDiaIniciado(false)
       setFechaInicio(null)
+      setTurnosFinalizados([])
+      setUltimoNumeroTurno(0)
     }
   }
 
-  const eliminarHistorial = (index: number) => {
-    setHistorial(historial.filter((_, i) => i !== index))
-  }
-
-  const formatearFecha = (fecha: Date) => {
-    return `${fecha.getDate().toString().padStart(2, '0')}/${(fecha.getMonth() + 1).toString().padStart(2, '0')}/${fecha.getFullYear()}`
-  }
-
-  const formatearHora = (fecha: Date) => {
-    return `${fecha.getHours().toString().padStart(2, '0')}.${fecha.getMinutes().toString().padStart(2, '0')}.${fecha.getSeconds().toString().padStart(2, '0')}`
-  }
-
-  const calcularDuracionTotal = (inicio: Date, fin: Date) => {
-    const diff = fin.getTime() - inicio.getTime()
-    const horas = Math.floor(diff / 3600000)
-    const minutos = Math.floor((diff % 3600000) / 60000)
-    const segundos = Math.floor((diff % 60000) / 1000)
-    return `${horas.toString().padStart(2, '0')}:${minutos.toString().padStart(2, '0')}:${segundos.toString().padStart(2, '0')}`
-  }
-
-  const copiarHistorial = (item: HistorialDia) => {
-    const texto = `Fecha Inicio: ${formatearFecha(item.fechaInicio)} ${formatearHora(item.fechaInicio)}\nFecha Fin: ${formatearFecha(item.fechaFin)} ${formatearHora(item.fechaFin)}\nDuración Total: ${calcularDuracionTotal(item.fechaInicio, item.fechaFin)}\nTotal Turnos: ${item.totalTurnos}\nTotal Recaudado: ${item.totalRecaudado}`
-    navigator.clipboard.writeText(texto)
-    toast.success('Datos copiados al portapapeles', {
-      position: "top-right",
-      autoClose: 2000,
-      hideProgressBar: false,
-      closeOnClick: true,
-      pauseOnHover: true,
-      draggable: true,
-      progress: undefined,
-    })
-  }
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setTurnos(turnosActuales => 
-        turnosActuales.map(turno => ({
-          ...turno,
-          tiempoRestante: Math.max(0, turno.tiempoRestante - 1)
-        }))
-      )
-    }, 1000)
-
-    return () => clearInterval(timer)
+  const calcularTiempoRestante = useCallback((turno: Turno) => {
+    const tiempoTranscurrido = Math.floor((Date.now() - turno.horaInicio) / 1000)
+    return Math.max(0, turno.tiempoInicial - tiempoTranscurrido)
   }, [])
 
   useEffect(() => {
-    turnos.forEach(turno => {
-      if (turno.tiempoRestante === 0 && !turno.completado) {
-        audio?.play()
-        setTurnos(turnosActuales => 
-          turnosActuales.map(t => 
-            t.numero === turno.numero ? { ...t, completado: true } : t
-          )
-        )
-      }
-    })
-  }, [turnos, audio])
+    const interval = setInterval(() => {
+      setTurnos(turnosActuales => 
+        turnosActuales.map(turno => {
+          const tiempoRestante = calcularTiempoRestante(turno)
+          if (tiempoRestante === 0 && !turno.completado) {
+            audio?.play()
+            return { ...turno, completado: true }
+          }
+          return turno
+        })
+      )
+    }, 1000)
 
-  const turnosActivos = turnos.filter(turno => turno.tiempoRestante > 0).length
+    return () => clearInterval(interval)
+  }, [calcularTiempoRestante, audio])
+
+  const turnosActivos = turnos.filter(turno => calcularTiempoRestante(turno) > 0).length
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
-      agregarTurno()
+      agregarTurno();
     }
-  }
+  };
 
   return (
     <div className="min-h-screen bg-white flex items-center justify-center p-4 font-sans">
@@ -259,106 +268,111 @@ export default function ModernCombinedApp() {
 
         {activeTab === 'turnos' && (
           <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row gap-2">
-              <input
-                type="text"
-                value={nuevoNombre}
-                onChange={(e) => setNuevoNombre(e.target.value.replace(/[^a-zA-Z]/g, ''))}
-                placeholder="Nombre"
-                className="w-full sm:w-auto px-4 py-2 bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 text-black"
-              />
-              <input
-                type="text"
-                value={nuevoNumero}
-                onChange={(e) => setNuevoNumero(e.target.value)}
-                onKeyPress={handleKeyPress}
-                placeholder="Número de turno"
-                className="w-full sm:w-auto px-4 py-2 bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 text-black"
-              />
+            {!diaIniciado ? (
               <button
-                onClick={agregarTurno}
-                className="w-full sm:w-auto px-6 py-2 bg-green-500 text-white font-bold rounded-md hover:bg-green-600 transition-colors duration-300"
-              >
-                Agregar
-              </button>
-            </div>
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center text-black space-y-2 sm:space-y-0">
-              <span className="font-bold">Turnos activos: {turnosActivos}</span>
-              <span className="font-bold">Total recaudado: ${totalRecaudado}</span>
-            </div>
-            <div className="space-y-4">
-              {turnos.map(turno => (
-                <div key={turno.numero} className="bg-white p-4 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-2 sm:space-y-0">
-                  <div>
-                    <span className="font-bold text-black block sm:inline">Turno {turno.numero} - {turno.nombre}</span>
-                    <span className="text-gray-600 block sm:inline sm:ml-2">
-                      {Math.floor(turno.tiempoRestante / 60)}:
-                       
-                      {(turno.tiempoRestante % 60).toString().padStart(2, '0')}
-                    </span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    {turno.tiempoRestante === 0 && <Bell className="text-green-500" />}
-                    <button
-                      onClick={() => eliminarTurno(turno.numero)}
-                      className="px-3 py-1 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors duration-300"
-                    >
-                      Eliminar
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-            {diaIniciado && (
-              <button
-                onClick={finalizarDia}
+                onClick={iniciarDia}
                 className="w-full px-6 py-3 bg-green-500 text-white font-bold rounded-md hover:bg-green-600 transition-colors duration-300"
               >
-                Finalizar Día
+                Iniciar Día
               </button>
-            )}
-            <div className="mt-8">
-              <h2 className="text-xl sm:text-2xl font-bold text-black mb-4">Historial</h2>
-              <div className="overflow-x-auto">
-                <table className="w-full text-black border-collapse">
-                  <thead>
-                    <tr className="bg-gray-200">
-                      <th className="p-2 text-left">Fecha</th>
-                      <th className="p-2 text-left">Duración</th>
-                      <th className="p-2 text-left">Turnos</th>
-                      <th className="p-2 text-left">Recaudado</th>
-                      <th className="p-2 text-left">Acciones</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {historial.map((item, index) => (
-                      <tr key={index} className="border-t border-gray-300">
-                        <td className="p-2">{formatearFecha(item.fechaInicio)}</td>
-                        <td className="p-2">{calcularDuracionTotal(item.fechaInicio, item.fechaFin)}</td>
-                        <td className="p-2">{item.totalTurnos}</td>
-                        <td className="p-2">${item.totalRecaudado}</td>
-                        <td className="p-2">
-                          <button
-                            onClick={() => copiarHistorial(item)}
-                            className="p-1 hover:bg-gray-200 rounded-full transition-colors duration-300 mr-2"
-                            title="Copiar"
-                          >
-                            <Copy className="text-black" size={16} />
-                          </button>
-                          <button
-                            onClick={() => eliminarHistorial(index)}
-                            className="p-1 hover:bg-gray-200 rounded-full transition-colors duration-300"
-                            title="Eliminar"
-                          >
-                            <Trash2 className="text-red-500" size={16} />
-                          </button>
-                        </td>
-                      </tr>
+            ) : (
+              <>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <input
+                    type="text"
+                    value={nuevoNombre}
+                    onChange={(e) => setNuevoNombre(e.target.value)}
+                    onKeyPress={handleKeyPress}
+                    placeholder="Nombre"
+                    className="w-full sm:w-auto px-4 py-2 bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 text-black"
+                  />
+                  <button
+                    onClick={agregarTurno}
+                    className="w-full sm:w-auto px-6 py-2 bg-green-500 text-white font-bold rounded-md hover:bg-green-600 transition-colors duration-300"
+                  >
+                    Agregar
+                  </button>
+                </div>
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center text-black space-y-2 sm:space-y-0">
+                  <span className="font-bold">Turnos activos: {turnosActivos}</span>
+                  <span className="font-bold">Total  recaudado: ${totalRecaudado}</span>
+                </div>
+                <div className="space-y-4">
+                  {turnos.map(turno => {
+                    const tiempoRestante = calcularTiempoRestante(turno)
+                    return (
+                      <div key={turno.numero} className="bg-white p-4 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-2 sm:space-y-0">
+                        <div className="flex flex-col">
+                          <span className="font-bold text-black">
+                            {turno.numero} - {turno.nombre} 
+                            {tiempoRestante > 0 ? (
+                              <span className="ml-2 text-gray-600">
+                                ({Math.floor(tiempoRestante / 60)}:
+                                {(tiempoRestante % 60).toString().padStart(2, '0')})
+                              </span>
+                            ) : (
+                              <span className="ml-2 text-green-500">(Tiempo completo)</span>
+                            )}
+                          </span>
+                          <span className="text-gray-600">
+                            Ingreso: {turno.horaIngreso}
+                          </span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          {tiempoRestante > 0 ? (
+                            <>
+                              <button
+                                onClick={() => finalizarTurno(turno.numero)}
+                                className="px-3 py-1 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors duration-300"
+                              >
+                                Finalizar turno
+                              </button>
+                              <button
+                                onClick={() => eliminarTurno(turno.numero)}
+                                className="p-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors duration-300"
+                                aria-label="Eliminar turno"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </>
+                          ) : (
+                            <button
+                              onClick={() => finalizarTurno(turno.numero)}
+                              className="p-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors duration-300"
+                              aria-label="Finalizar turno"
+                            >
+                              <CheckCircle size={16} />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+                <div className="mt-8">
+                  <h2 className="text-xl sm:text-2xl font-bold text-black mb-4">Turnos finalizados</h2>
+                  <div className="space-y-4">
+                    {turnosFinalizados.map(turno => (
+                      <div key={turno.numero} className="bg-white p-4 rounded-xl">
+                        <div className="flex flex-col">
+                          <span className="font-bold text-black">
+                            {turno.numero} - {turno.nombre} 
+                            <span className="ml-2 text-green-500">(Tiempo completo)</span>
+                          </span>
+                          <span className="text-gray-600">Ingreso: {turno.horaIngreso}</span>
+                        </div>
+                      </div>
                     ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+                  </div>
+                </div>
+                <button
+                  onClick={finalizarDia}
+                  className="w-full px-6 py-3 bg-red-500 text-white font-bold rounded-md hover:bg-red-600 transition-colors duration-300"
+                >
+                  Finalizar Día
+                </button>
+              </>
+            )}
           </div>
         )}
       </div>
@@ -385,4 +399,24 @@ function InputField({ label, value, onChange }: InputFieldProps) {
       />
     </div>
   )
-}
+} */
+
+
+  import { BrowserRouter as Router, Route, Routes } from 'react-router-dom'
+  import Dashboard from './components/Dashboard'
+  import Calculadora from './components/Calculadora'
+  import Turnos from './components/Turnos'
+  
+  function App() {
+    return (
+      <Router>
+        <Routes>
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/calculadora" element={<Calculadora />} />
+          <Route path="/turnos" element={<Turnos />} />
+        </Routes>
+      </Router>
+    )
+  }
+  
+  export default App
